@@ -160,11 +160,11 @@ public class WorkspaceFsBackupSchedulerTest {
         scheduler.scheduleBackup();
 
         // then
-        verify(scheduler).backupWorkspaceInMachine(eq(machine1));
-        verify(scheduler).backupWorkspaceInMachine(eq(machine2));
-        verify(scheduler).backupWorkspaceInMachine(eq(machine3));
-        verify(scheduler).backupWorkspaceInMachine(eq(machine4));
-        verify(scheduler).backupWorkspaceInMachine(eq(machine5));
+        verify(scheduler, timeout(1000)).backupWorkspaceInMachine(eq(machine1));
+        verify(scheduler, timeout(1000)).backupWorkspaceInMachine(eq(machine2));
+        verify(scheduler, timeout(1000)).backupWorkspaceInMachine(eq(machine3));
+        verify(scheduler, timeout(1000)).backupWorkspaceInMachine(eq(machine4));
+        verify(scheduler, timeout(1000)).backupWorkspaceInMachine(eq(machine5));
     }
 
     @Test
