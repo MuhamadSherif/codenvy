@@ -47,6 +47,7 @@ public class HelpCommand extends AbstractIMCommand {
                                        .withEntry(withCyan("config"), "Get installation manager configuration")
                                        .withEntry(withCyan("download"), "Download artifacts or print the list of installed ones")
                                        .withEntry(withCyan("install"), "Install, update artifact or print the list of already installed ones")
+                                       .withEntry(withCyan("login"), "Login to Codenvy")
                                        .withEntry(withCyan("remove-node"), "Remove Codenvy node")
                                        .withEntry(withCyan("restore"), "Restore Codenvy data")
                                        .withEntry(withCyan("version"), "Print the list of available latest versions and installed ones")

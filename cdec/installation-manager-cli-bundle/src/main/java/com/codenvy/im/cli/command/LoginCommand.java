@@ -23,7 +23,7 @@ import static java.lang.String.format;
 /**
  * Installation manager Login command.
  */
-@Command(scope = "codenvy", name = "login", description = "Login to remote Codenvy cloud")
+@Command(scope = "codenvy", name = "login", description = "Login to Codenvy")
 public class LoginCommand extends AbstractIMCommand {
 
     @Argument(name = "username", description = "The username", required = false, multiValued = false, index = 0)
