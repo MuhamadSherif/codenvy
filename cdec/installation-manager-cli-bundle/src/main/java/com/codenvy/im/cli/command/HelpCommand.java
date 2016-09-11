@@ -63,9 +63,4 @@ public class HelpCommand extends AbstractIMCommand {
     private String withCyan(String name) {
         return Ansi.ansi().fg(CYAN).a(name).reset().toString();
     }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void validateIfUserLoggedIn() throws IllegalStateException {
-    }
 }

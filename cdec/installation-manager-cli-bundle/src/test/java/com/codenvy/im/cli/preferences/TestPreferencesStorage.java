@@ -14,8 +14,10 @@
  */
 package com.codenvy.im.cli.preferences;
 
+import com.codenvy.cli.command.builtin.Remote;
 import com.codenvy.cli.preferences.Preferences;
 import com.codenvy.cli.preferences.PreferencesAPI;
+import com.codenvy.cli.security.RemoteCredentials;
 import com.google.common.io.Files;
 
 import org.mockito.MockitoAnnotations;
@@ -25,6 +27,8 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
 import static org.testng.Assert.assertEquals;
 import static org.testng.AssertJUnit.assertNull;
 
@@ -35,7 +39,7 @@ public class TestPreferencesStorage {
 
     private Preferences globalPreferences;
     private final static String DEFAULT_PREFERENCES_FILE          = "default-preferences.json";
-    private final static String PREFERENCES_WITH_SAAS_SERVER_FILE = "preferences-with-saas-server-remote.json";
+    private final static String PREFERENCES_WITH_SAAS_SERVER_FILE = "preferences-with-codenvy-onprem-server-remote.json";
 
 
     @BeforeMethod
@@ -46,17 +50,63 @@ public class TestPreferencesStorage {
     @Test
     private void testGetAuthToken() {
         globalPreferences = loadPreferences(PREFERENCES_WITH_SAAS_SERVER_FILE);
-        PreferencesStorage preferencesStorage = new PreferencesStorage(globalPreferences, SAAS_SERVER_REMOTE_NAME);
+//        CodenvyOnpremPreferences codenvyOnpremPreferences = new CodenvyOnpremPreferences(globalPreferences);
 
-        assertEquals(preferencesStorage.getAuthToken(), TEST_TOKEN);
+//        assertEquals(codenvyOnpremPreferences.getAuthToken(), TEST_TOKEN);
     }
 
     @Test
     private void testGetPreferencesWhenSaasServerRemoteAbsent() {
         globalPreferences = loadPreferences(DEFAULT_PREFERENCES_FILE);
-        PreferencesStorage preferencesStorage = new PreferencesStorage(globalPreferences, SAAS_SERVER_REMOTE_NAME);
-        assertNull(preferencesStorage.getAuthToken());
+//        CodenvyOnpremPreferences codenvyOnpremPreferences = new CodenvyOnpremPreferences(globalPreferences);
+//        assertNull(codenvyOnpremPreferences.getAuthToken());
     }
+
+//    @Test(expectedExceptions = IllegalStateException.class,
+//        expectedExceptionsMessageRegExp = "Please log in into 'saas-server' remote.")
+//    public void testInitWhenUpdateServerRemoteAbsent() {
+//        globalPreferences = loadPreferences(DEFAULT_PREFERENCES_FILE);
+//        prepareTestAbstractIMCommand(spyCommand);
+//        spyCommand.init();
+//        spyCommand.validateIfUserLoggedInCodenvyOnprem();
+//    }
+//
+//    @Test(expectedExceptions = IllegalStateException.class,
+//        expectedExceptionsMessageRegExp = "Please log in into 'saas-server' remote.")
+//    public void testInitWhenUserDidNotLogin() {
+//        globalPreferences = loadPreferences(PREFERENCES_WITH_SAAS_SERVER_WITHOUT_LOGIN_FILE);
+//        prepareTestAbstractIMCommand(spyCommand);
+//        spyCommand.init();
+//        spyCommand.validateIfUserLoggedInCodenvyOnprem();
+//    }
+//
+//    @Test
+//    public void testCreateRemote() {
+//        doReturn(mockMultiRemoteCodenvy).when(spyCommand).getMultiRemoteCodenvy();
+//        doReturn(null).when(mockMultiRemoteCodenvy).getRemote(CodenvyOnpremPreferences.CODENVY_ONPREM_REMOTE_NAME);
+//        spyCommand.upsertRemote(CodenvyOnpremPreferences.CODENVY_ONPREM_REMOTE_NAME, CODENVY_ONPREM_SERVER_URL);
+//        verify(mockMultiRemoteCodenvy).addRemote(CodenvyOnpremPreferences.CODENVY_ONPREM_REMOTE_NAME, CODENVY_ONPREM_SERVER_URL);
+//    }
+//
+//    @Test
+//    public void testCreateRemoteOverExistedOne() {
+//        globalPreferences = loadPreferences(PREFERENCES_WITH_SAAS_SERVER_FILE);
+//        prepareTestAbstractIMCommand(spyCommand);
+//        spyCommand.init();
+//
+//        RemoteCredentials credentials = globalPreferences.path("remotes").get(CodenvyOnpremPreferences.CODENVY_ONPREM_REMOTE_NAME, RemoteCredentials.class);
+//        assertEquals(credentials.getToken(), TEST_TOKEN);
+//
+//        String newUrl = "new_url";
+//        spyCommand.upsertRemote(CodenvyOnpremPreferences.CODENVY_ONPREM_REMOTE_NAME, newUrl);
+//
+//        Remote remote = globalPreferences.path("remotes").get(CodenvyOnpremPreferences.CODENVY_ONPREM_REMOTE_NAME, Remote.class);
+//        assertEquals(remote.getUrl(), newUrl);
+//
+//        credentials = globalPreferences.path("remotes").get(CodenvyOnpremPreferences.CODENVY_ONPREM_REMOTE_NAME, RemoteCredentials.class);
+//        assertEquals(credentials.getToken(), "");
+//        assertEquals(credentials.getUsername(), "");
+//    }
 
     private Preferences loadPreferences(String preferencesFileRelativePath) {
         String preferencesFileFullPath = getClass().getClassLoader().getResource(preferencesFileRelativePath).getPath();
