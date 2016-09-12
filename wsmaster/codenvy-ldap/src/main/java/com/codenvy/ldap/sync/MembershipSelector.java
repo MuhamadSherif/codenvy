@@ -17,17 +17,135 @@ package com.codenvy.ldap.sync;
 import org.ldaptive.Connection;
 import org.ldaptive.LdapEntry;
 import org.ldaptive.LdapException;
+import org.ldaptive.Response;
+import org.ldaptive.SearchFilter;
+import org.ldaptive.SearchOperation;
+import org.ldaptive.SearchRequest;
+import org.ldaptive.SearchResult;
+
+import java.util.Iterator;
+import java.util.List;
+
+import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
+import static org.ldaptive.ResultCode.SUCCESS;
+import static org.ldaptive.SearchScope.OBJECT;
+import static org.ldaptive.SearchScope.SUBTREE;
 
 /**
  * @author Yevhenii Voevodin
  */
 public class MembershipSelector implements LdapEntrySelector {
 
-    public MembershipSelector(String baseDn, String membersAttr) {
+    private final String   baseDn;
+    private final String   groupsFilter;
+    private final String   usersFilter;
+    private final String   membersAttr;
+    private final String[] returnAttrs;
+
+    public MembershipSelector(String baseDn,
+                              String groupsFilter,
+                              String usersFilter,
+                              String membersAttr,
+                              String[] returnAttrs) {
+        this.baseDn = baseDn;
+        this.groupsFilter = groupsFilter;
+        this.usersFilter = usersFilter;
+        this.membersAttr = membersAttr;
+        this.returnAttrs = returnAttrs;
     }
 
     @Override
-    public Iterable<LdapEntry> select(Connection connection) throws LdapException {
-        return null;
+    public Iterable<LdapEntry> select(Connection connection) {
+        final SearchRequest groupsSearch = new SearchRequest();
+        groupsSearch.setBaseDn(baseDn);
+        groupsSearch.setSearchFilter(new SearchFilter(groupsFilter));
+        groupsSearch.setSearchScope(SUBTREE);
+        groupsSearch.setReturnAttributes(membersAttr);
+        try {
+            final Response<SearchResult> response = new SearchOperation(connection).execute(groupsSearch);
+            if (response.getResultCode() != SUCCESS) {
+                throw new SyncException("Couldn't get groups, result code is " + response.getResultCode());
+            }
+            return new RequestEachEntryIterable(response.getResult()
+                                                        .getEntries()
+                                                        .stream()
+                                                        .flatMap(entry -> entry.getAttribute(membersAttr)
+                                                                               .getStringValues()
+                                                                               .stream())
+                                                        .collect(toList()),
+                                                connection,
+                                                usersFilter,
+                                                returnAttrs);
+        } catch (LdapException x) {
+            throw new SyncException(x.getLocalizedMessage(), x);
+        }
+    }
+
+    private static class RequestEachEntryIterable implements Iterable<LdapEntry> {
+        private final List<String> dns;
+        private final Connection   connection;
+        private final SearchFilter usersFilter;
+
+        private RequestEachEntryIterable(List<String> dns,
+                                         Connection connection,
+                                         String usersFilter,
+                                         String[] returnAttrs) {
+            this.dns = dns;
+            this.connection = connection;
+            this.usersFilter = new SearchFilter(usersFilter);
+            this.returnAttrs = returnAttrs;
+        }
+
+        private final String[] returnAttrs;
+
+        @Override
+        public Iterator<LdapEntry> iterator() {
+            return new RequestEachEntryIterator(dns.iterator(), connection, usersFilter, returnAttrs);
+        }
+    }
+
+    private static class RequestEachEntryIterator implements Iterator<LdapEntry> {
+
+        private final Iterator<String> dnsIterator;
+        private final Connection       connection;
+        private final SearchFilter     usersFilter;
+        private final String[]         returnAttrs;
+
+        private RequestEachEntryIterator(Iterator<String> dns,
+                                         Connection connection,
+                                         SearchFilter usersFilter,
+                                         String[] returnAttrs) {
+            this.dnsIterator = dns;
+            this.connection = connection;
+            this.usersFilter = usersFilter;
+            this.returnAttrs = returnAttrs;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return dnsIterator.hasNext();
+        }
+
+        // TODO optimize the code below
+
+        @Override
+        public LdapEntry next() {
+            final String dn = dnsIterator.next();
+            final SearchRequest request = new SearchRequest();
+            request.setBaseDn(dn);
+            request.setSearchFilter(usersFilter);
+            request.setSearchScope(OBJECT);
+            request.setReturnAttributes(returnAttrs);
+            try {
+                final Response<SearchResult> response = new SearchOperation(connection).execute(request);
+                if (response.getResultCode() != SUCCESS) {
+                    throw new SyncException(format("Couldn't get entry dn '%s', result code is '%s'", dn, response.getResultCode()));
+                }
+                return response.getResult().getEntry();
+            } catch (LdapException x) {
+                throw new SyncException(x.getLocalizedMessage(), x);
+            }
+        }
     }
 }

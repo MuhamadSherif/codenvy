@@ -18,9 +18,11 @@ import com.google.common.collect.ImmutableMap;
 
 import org.eclipse.che.api.user.server.model.impl.ProfileImpl;
 import org.eclipse.che.commons.lang.Pair;
+import org.ldaptive.LdapAttribute;
 import org.ldaptive.LdapEntry;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.stream.Collectors.toMap;
@@ -30,20 +32,30 @@ import static java.util.stream.Collectors.toMap;
  */
 public class ProfileMapper implements Function<LdapEntry, ProfileImpl> {
 
-    private final ImmutableMap<String, String> attributes;
+    /** App attribute name -> ldap attribute name . */
+    private final ImmutableMap<String, String> appToLdapAttrNames;
     private final String                       idAttr;
 
     public ProfileMapper(String idAttr, Pair<String, String>[] attributes) {
         this.idAttr = idAttr;
         if (attributes == null) {
-            this.attributes = ImmutableMap.of();
+            this.appToLdapAttrNames = ImmutableMap.of();
         } else {
-            this.attributes = ImmutableMap.copyOf(Arrays.stream(attributes).collect(toMap(p -> p.first, p -> p.second)));
+            this.appToLdapAttrNames = ImmutableMap.copyOf(Arrays.stream(attributes)
+                                                                .collect(toMap(p -> p.first, p -> p.second.toLowerCase())));
         }
     }
 
     @Override
     public ProfileImpl apply(LdapEntry entry) {
-        return null;
+        final ProfileImpl profile = new ProfileImpl();
+        profile.setUserId(entry.getAttribute(idAttr).getStringValue());
+        for (Map.Entry<String, String> attrMapping : appToLdapAttrNames.entrySet()) {
+            final LdapAttribute ldapAttr = entry.getAttribute(attrMapping.getValue());
+            if (ldapAttr != null) {
+                profile.getAttributes().put(attrMapping.getKey(), ldapAttr.getStringValue());
+            }
+        }
+        return profile;
     }
 }

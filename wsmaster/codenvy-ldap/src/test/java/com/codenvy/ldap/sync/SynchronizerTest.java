@@ -16,36 +16,70 @@ package com.codenvy.ldap.sync;
 
 import com.codenvy.ldap.LdapConnectionFactoryProvider;
 import com.codenvy.ldap.MyLdapServer;
+import com.codenvy.ldap.sync.LdapSynchronizer.SyncResult;
 
 import org.apache.directory.shared.ldap.entry.ServerEntry;
+import org.eclipse.che.api.user.server.model.impl.ProfileImpl;
+import org.eclipse.che.api.user.server.model.impl.UserImpl;
+import org.eclipse.che.api.user.server.spi.ProfileDao;
+import org.eclipse.che.api.user.server.spi.UserDao;
 import org.eclipse.che.commons.lang.Pair;
-import org.ldaptive.Connection;
 import org.ldaptive.ConnectionFactory;
-import org.ldaptive.Response;
-import org.ldaptive.SearchFilter;
-import org.ldaptive.SearchOperation;
-import org.ldaptive.SearchRequest;
-import org.ldaptive.SearchResult;
-import org.ldaptive.SearchScope;
-import org.testng.annotations.AfterMethod;
+import org.mockito.Mock;
+import org.mockito.testng.MockitoTestNGListener;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static java.util.stream.Collectors.toSet;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
+
+// TODO:
+// cover synchronizer with tests
+// separate lookup & membership selector tests
+// add integration tests
 
 /**
- * Tests {@link Synchronizer}.
+ * Tests {@link LdapSynchronizer}.
  *
  * @author Yevhenii Voevodin
  */
+@Listeners(MockitoTestNGListener.class)
 public class SynchronizerTest {
 
     private static final String BASE_DN = "dc=codenvy,dc=com";
 
+    @Mock
+    private UserDao userDao;
+
+    @Mock
+    private ProfileDao profileDao;
+
+    @Mock
+    private EntityManager entityManager;
+
     private MyLdapServer      server;
     private ConnectionFactory connFactory;
+    private List<ServerEntry> createdEntries;
 
-    @BeforeMethod
+    @BeforeClass
     public void startServer() throws Exception {
         server = MyLdapServer.builder()
                              .setPartitionId("codenvy")
@@ -60,64 +94,154 @@ public class SynchronizerTest {
                                                         server.getUrl(),
                                                         30_000,
                                                         120_000).get();
+
+        // TODO simplify
+        // create a set of users
+        final ServerEntry group1 = createLdapGroup("group1");
+        final ServerEntry group2 = createLdapGroup("group2");
+        createdEntries = new ArrayList<>(200);
+        for (int i = 0; i < 200; i++) {
+            final UserImpl user = new UserImpl("id" + i, "mail" + i, "name" + i);
+            final ServerEntry entry = i % 2 == 0 ?
+                                      addLdapUser(user,
+                                                  Pair.of("givenName", "test-user-first-name" + i),
+                                                  Pair.of("sn", "test-user-last-name"),
+                                                  Pair.of("telephoneNumber", "00000000" + i)) :
+                                      addLdapUser(user);
+            if (i % 2 != 0) {
+                if (i < 100) {
+                    group1.add("member", entry.getDn().toString());
+                } else {
+                    group2.add("member", entry.getDn().toString());
+                }
+            }
+            createdEntries.add(entry);
+        }
+        server.addEntry(group1);
+        server.addEntry(group2);
     }
 
-    @AfterMethod
+    @AfterClass
     public void stopServer() throws Exception {
         server.stop();
     }
 
-    @Test
-    public void testUsersSynchronizationWithSimpleFilter() throws Exception {
-        for (int i = 0; i < 200; i++) {
-            // half of users have givenName attribute
-            createUser("id" + i, "name" + i, "mail" + i, i % 2 == 0 ?
-                                                         new Pair[] {Pair.of("givenName", "given-name" + i)} :
-                                                         new Pair[0]);
-        }
-
-        @SuppressWarnings("unchecked") // obviously the last parameter is pair of strings
-        final Synchronizer synchronizer = new Synchronizer(connFactory,
-                                                           BASE_DN,
-                                                           "(&(objectClass=*)(givenName=*))",
-                                                           null,
-                                                           null,
-                                                           null,
-                                                           null,
-                                                           -1L,
-                                                           10,
-                                                           30_000L,
-                                                           "uid",
-                                                           "cn",
-                                                           "mail",
-                                                           new Pair[] {Pair.of("lastName", "givenName")});
-
-        assertEquals(synchronizer.syncAll(), 100);
+    @BeforeMethod
+    public void mockEntityManager() {
+        final Query q = mock(Query.class);
+        when(q.getResultList()).thenReturn(new ArrayList());
+        when(entityManager.createNativeQuery(anyString())).thenReturn(q);
     }
 
     @Test
-    public void test() throws Exception {
-        try (Connection conn = connFactory.getConnection()) {
-            conn.open();
-            final SearchRequest req = new SearchRequest();
-            req.setBaseDn(BASE_DN);
-            req.setSearchFilter(new SearchFilter("(objectClass=*)"));
-            req.setSearchScope(SearchScope.SUBTREE);
-            final Response<SearchResult> resp = new SearchOperation(conn).execute(req);
-            assertEquals(resp.getResult().getEntries().size(), 2);
+    public void testLookupSynchronization() throws Exception {
+        // mock storage
+        final Set<UserImpl> storedUsers = new HashSet<>();
+        doAnswer(inv -> storedUsers.add((UserImpl)inv.getArguments()[0])).when(userDao).create(anyObject());
+        final Map<String, ProfileImpl> storedProfiles = new HashMap<>();
+        doAnswer(inv -> {
+            final ProfileImpl profile = (ProfileImpl)inv.getArguments()[0];
+            storedProfiles.put(profile.getUserId(), profile);
+            return null;
+        }).when(profileDao).create(anyObject());
+
+        @SuppressWarnings("unchecked") // obviously the last parameter is a pair of strings
+        final LdapSynchronizer synchronizer = new LdapSynchronizer(connFactory,
+                                                                   () -> entityManager,
+                                                                   userDao,
+                                                                   profileDao,
+                                                                   BASE_DN,
+                                                                   "(&(objectClass=*)(givenName=*))",
+                                                                   null,
+                                                                   null,
+                                                                   null,
+                                                                   null,
+                                                                   -1L,
+                                                                   10,
+                                                                   30_000L,
+                                                                   "uid",
+                                                                   "cn",
+                                                                   "mail",
+                                                                   new Pair[] {Pair.of("firstName", "givenName")});
+
+        final SyncResult syncResult = synchronizer.syncAll();
+
+        assertEquals(syncResult.getCreated(), 100);
+        assertEquals(syncResult.getRemoved(), 0);
+        assertEquals(syncResult.getUpdated(), 0);
+        assertEquals(storedUsers, createdEntries.stream()
+                                                .filter(entry -> !entry.get("sn")
+                                                                       .get(0) // <- sn is a required attribute for inetOrgPerson
+                                                                       .toString()
+                                                                       .equals("<none>"))
+                                                .map(SynchronizerTest::asUser)
+                                                .collect(toSet()));
+        for (UserImpl storedUser : storedUsers) {
+            final ProfileImpl profile = storedProfiles.get(storedUser.getId());
+            assertNotNull(profile.getAttributes().get("firstName"));
         }
     }
 
-    private void createUser(String id, String name, String email, Pair... other) throws Exception {
-        final ServerEntry entry = server.newEntry("uid", id);
-        entry.add("objectClass", "inetOrgPerson");
-        entry.add("uid", id);
-        entry.add("cn", name);
-        entry.add("mail", email);
-        entry.add("sn", "<none>");
+    @Test
+    public void testMembershipSynchronization() throws Exception {
+        // mock storage
+        final Set<UserImpl> storedUsers = new HashSet<>();
+        doAnswer(inv -> storedUsers.add((UserImpl)inv.getArguments()[0])).when(userDao).create(anyObject());
+
+        final LdapSynchronizer synchronizer =
+                new LdapSynchronizerBuilder().setConnectionFactory(connFactory)
+                                             .setEntityManagerProvider(() -> entityManager)
+                                             .setUserDao(userDao)
+                                             .setProfileDao(profileDao)
+                                             .setBaseDn(BASE_DN)
+                                             .setUsersFilter("(&(objectClass=inetOrgPerson)(uid=*))")
+                                             .setGroupFilter("(objectClass=groupOfNames)")
+                                             .setMembersAttrName("member")
+                                             .setUserIdAttr("uid")
+                                             .setUserNameAttr("cn")
+                                             .setUserEmailAttr("mail")
+                                             .addProfileAttr("firstName", "givenName")
+                                             .build();
+
+        final SyncResult syncResult = synchronizer.syncAll();
+
+        assertEquals(syncResult.getCreated(), 100);
+        assertEquals(syncResult.getRemoved(), 0);
+        assertEquals(syncResult.getUpdated(), 0);
+        assertEquals(storedUsers, createdEntries.stream()
+                                                .filter(entry -> entry.get("sn")
+                                                                      .get(0) // <- sn is a required attribute for inetOrgPerson
+                                                                      .toString()
+                                                                      .equals("<none>"))
+                                                .map(SynchronizerTest::asUser)
+                                                .collect(toSet()));
+    }
+
+    private ServerEntry addLdapUser(UserImpl user, Pair... other) throws Exception {
+        final ServerEntry entry = server.newEntry("uid", user.getId());
+        entry.put("objectClass", "inetOrgPerson");
+        entry.put("uid", user.getId());
+        entry.put("cn", user.getName());
+        entry.put("mail", user.getEmail());
+        entry.put("sn", "<none>");
         for (Pair pair : other) {
-            entry.add(pair.first.toString(), pair.second.toString());
+            entry.put(pair.first.toString(), pair.second.toString());
         }
         server.addEntry(entry);
+        return entry;
+    }
+
+    private ServerEntry createLdapGroup(String name) throws Exception {
+        final ServerEntry group = server.newEntry("ou", name);
+        group.put("objectClass", "top", "groupOfNames");
+        group.put("cn", name);
+        group.put("ou", name);
+        return group;
+    }
+
+    private static UserImpl asUser(ServerEntry entry) {
+        return new UserImpl(entry.get("uid").get(0).toString(),
+                            entry.get("mail").get(0).toString(),
+                            entry.get("cn").get(0).toString());
     }
 }

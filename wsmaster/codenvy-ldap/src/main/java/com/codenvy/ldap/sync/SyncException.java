@@ -14,6 +14,21 @@
  */
 package com.codenvy.ldap.sync;
 
+import org.ldaptive.LdapException;
+
+import java.util.Iterator;
+
+/**
+ * Thrown when any synchronization error occurred.
+ * Usually rethrows {@link LdapException} or another exceptions
+ * occurred during operation executions, this exception extends
+ * {@link RuntimeException} as it makes easier to create custom
+ * {@link Iterator} implementations.
+ * As the {@link LdapSynchronizer} is independent component this exception
+ * is used for synchronizer only, it's instances are not published.
+ *
+ * @author Yevhenii Voevodin
+ */
 public class SyncException extends RuntimeException {
 
     public SyncException(String message) {

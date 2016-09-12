@@ -25,19 +25,14 @@
     <artifactId>codenvy-ldap</artifactId>
     <packaging>jar</packaging>
     <name>Codenvy :: Hosted :: LDAP</name>
-    <properties>
-        <ldap.domain>ldap.example.com</ldap.domain>
-        <ldap.host>${docker.host.address}</ldap.host>
-        <ldap.image.name>ksmster/openldap:1.0</ldap.image.name>
-        <ldap.password>ldappassword</ldap.password>
-        <ldap.port>${docker.ldap.port}</ldap.port>
-        <ldap.readonly.password>readonlypassword</ldap.readonly.password>
-        <ldap.readonly.user>codenvyuser</ldap.readonly.user>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.che.core</groupId>
+            <artifactId>che-api-core-account</artifactId>
         </dependency>
         <dependency>
             <groupId>javax.inject</groupId>
@@ -50,6 +45,26 @@
         <dependency>
             <groupId>org.eclipse.che.core</groupId>
             <artifactId>che-core-commons-schedule</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.che.core</groupId>
+            <artifactId>che-core-api-jdbc-vendor-h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.inject.extensions</groupId>
+            <artifactId>guice-persist</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.persistence</groupId>
+            <artifactId>eclipselink</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.ldaptive</groupId>
@@ -68,6 +83,11 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -111,90 +131,4 @@
             </plugin>
         </plugins>
     </build>
-    <profiles>
-        <profile>
-            <id>integration</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <systemPropertyVariables>
-                                <jdbc.driver>${jdbc.driver}</jdbc.driver>
-                                <jdbc.url>${jdbc.url}</jdbc.url>
-                                <jdbc.user>${jdbc.user}</jdbc.user>
-                                <jdbc.password>${jdbc.password}</jdbc.password>
-                            </systemPropertyVariables>
-                            <includes>
-                                <include>**/tck/**</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>io.fabric8</groupId>
-                        <artifactId>docker-maven-plugin</artifactId>
-                        <version>0.15.16</version>
-                        <!-- Connect start/stop to pre- and
-                             post-integration-test phase, respectively if you want to start
-                             your docker containers during integration tests -->
-                        <executions>
-                            <execution>
-                                <id>start</id>
-                                <phase>pre-integration-test</phase>
-                                <goals>
-                                    <goal>stop</goal>
-                                    <goal>start</goal>
-                                </goals>
-                            </execution>
-                            <!--execution>
-                                <id>stop</id>
-                                <phase>post-integration-test</phase>
-                                <goals>
-                                    <goal>stop</goal>
-                                </goals>
-                            </execution-->
-                        </executions>
-                        <configuration>
-                            <images>
-                                <image>
-                                    <alias>database</alias>
-                                    <name>${ldap.image.name}</name>
-                                    <run>
-                                        <ports>
-                                            <port>docker.ldap.port:389</port>
-                                        </ports>
-                                        <wait>
-                                            <log>slapd starting</log>
-                                        </wait>
-                                        <restartPolicy>
-                                            <name>always</name>
-                                        </restartPolicy>
-                                        <env>
-                                            <LDAP_DOMAIN>${ldap.domain}</LDAP_DOMAIN>
-                                            <LDAP_ADMIN_PASSWORD>${ldap.password}</LDAP_ADMIN_PASSWORD>
-                                            <LDAP_READONLY_USER>true</LDAP_READONLY_USER>
-                                            <LDAP_READONLY_USER_USERNAME>${ldap.readonly.user}</LDAP_READONLY_USER_USERNAME>
-                                            <LDAP_READONLY_USER_PASSWORD>${ldap.readonly.password}</LDAP_READONLY_USER_PASSWORD>
-                                        </env>
-                                    </run>
-                                </image>
-                            </images>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>

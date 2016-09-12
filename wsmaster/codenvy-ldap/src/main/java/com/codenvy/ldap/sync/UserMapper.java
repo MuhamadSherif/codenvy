@@ -36,6 +36,8 @@ public class UserMapper implements Function<LdapEntry, UserImpl> {
 
     @Override
     public UserImpl apply(LdapEntry entry) {
-        return null;
+        return new UserImpl(entry.getAttribute(idAttr)  .getStringValue(),
+                            entry.getAttribute(mailAttr).getStringValue(),
+                            entry.getAttribute(nameAttr).getStringValue());
     }
 }

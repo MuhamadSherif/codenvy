@@ -26,11 +26,15 @@ import org.ldaptive.control.util.CookieManager;
 import org.ldaptive.control.util.DefaultCookieManager;
 import org.ldaptive.control.util.PagedResultsClient;
 
+import java.time.Duration;
 import java.util.Iterator;
 
 import static org.ldaptive.ResultCode.SUCCESS;
 
 /**
+ * Searches for all the entries matching given filter in given base
+ * distinguished name using subtree search.
+ *
  * @author Yevhenii Voevodin
  */
 public class LookupSelector implements LdapEntrySelector {
@@ -39,8 +43,10 @@ public class LookupSelector implements LdapEntrySelector {
     private final String   baseDn;
     private final String[] attributes;
     private final int      pageSize;
+    private final long     readPageTimeoutMs;
 
     public LookupSelector(int pageSize,
+                          long readPageTimeoutMs,
                           String baseDn,
                           String filter,
                           String[] attributes) {
@@ -48,6 +54,7 @@ public class LookupSelector implements LdapEntrySelector {
         this.baseDn = baseDn;
         this.attributes = attributes;
         this.pageSize = pageSize;
+        this.readPageTimeoutMs = readPageTimeoutMs;
     }
 
     @Override
@@ -57,6 +64,7 @@ public class LookupSelector implements LdapEntrySelector {
         req.setSearchFilter(new SearchFilter(filter));
         req.setReturnAttributes(attributes);
         req.setSearchScope(SearchScope.SUBTREE);
+        req.setTimeLimit(Duration.ofMillis(readPageTimeoutMs));
         return new PagedIterable(new PagedResultsClient(connection, pageSize), req);
     }
 
