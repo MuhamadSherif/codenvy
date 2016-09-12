@@ -22,7 +22,10 @@ import javax.inject.Named;
 import javax.validation.constraints.NotNull;
 
 /**
- * Created by sj on 08.09.16.
+ * Ldap configuration.
+ * Used to organise single place for ldap configuration in container.
+ *
+ * @author Sergii Kabashniuk
  */
 public class LdapConfiguration {
 
@@ -54,30 +57,13 @@ public class LdapConfiguration {
     }
 
 
-    //    private int     minPoolSize          = 3;
-//    private int     maxPoolSize          = 10;
-//    private boolean validateOnCheckout   = true;
-//    private boolean validatePeriodically = true;
-//    private long    validatePeriod       = 300;
-//
-//    private boolean failFast      = true;
-//    private long    idleTime      = 600;
-//    private long    prunePeriod   = 10000;
-//    private long    blockWaitTime = 6000;
-//
-//    private String  ldapUrl = "ldap://localhost:389";
-//    private boolean useSsl  = true;
-//    private boolean useStartTls;
-//    private long connectTimeout = 5000;
-//
-//
-
     /**
      *  Url to ldap server. Configured over ldap.url property.
      */
     private final String ldapUrl;
     /**
-     * baseDn to search on. Configured over ldap.basedn property.
+     * DN to search; An empty value searches the rootDSE;
+     * Configured over ldap.basedn property.
      */
     private final String baseDn;
 
@@ -89,41 +75,104 @@ public class LdapConfiguration {
      * whether to throw an exception if multiple entries are found with the search filter. Configured over ldap.allowmultipledns
      */
     private final boolean allowMultipleDns;
+    /**
+     * whether a subtree search should be performed.
+     * Configured over ldap.subtreesearch
+     */
+    private final boolean subtreeSearch;
+    /**
+     * DN to bind as before performing operations.
+     * Configured over ldap.bind.dn
+     */
+    private final String  bindDn;
+    /**
+     * Credential for the bind DN.
+     * Configured over ldap.bind.password
+     */
+    private final String  bindCredential;
 
-    private final String  dnFormat;
-    private final String  principalAttributePassword;
-    private final boolean allowMultiplePrincipalAttributeValues;
 
-    private final String  trustCertificates;
-    private final String  keystore;
-    private final String  keystorePassword;
-    private final String  keystoreType;
+    /**
+     * 	size the pool should be initialized to and pruned to.
+     *  Configured over ldap.pool.minsize
+     */
     private final int     minPoolSize;
+    /**
+     * maximum size the pool can grow to.
+     * Configured over ldap.pool.maxsize
+     */
     private final int     maxPoolSize;
+    /**
+     * whether connections should be validated when loaned out from the pool.
+     * Configured over ldap.pool.validate.oncheckout
+     */
     private final boolean validateOnCheckout;
+    /**
+     * whether connections should be validated when returned to the pool.
+     * Configured over ldap.pool.validate.oncheckin
+     */
+    private final boolean validateOnCheckin;
+    /**
+     * whether connections should be validated periodically when the pool is idle
+     * Configured over ldap.pool.validate.periodically
+     */
     private final boolean validatePeriodically;
+    /**
+     * period in seconds at which pool should be validated.
+     * Configured over ldap.pool.validate.period_ms
+     */
     private final long    validatePeriod;
+
+    /**
+     * Maximum amount of time that connects will block.
+     * Configured over ldap.connecttimeout_ms
+     */
+    private final long connectTimeout;
+    /**
+     * Sets the maximum amount of time that operations will wait for a response.
+     * Configured over ldap.responsetimeout_ms
+     */
+    private final long responseTimeout;
+
+    /**
+     * Resolves an entry DN by using String#format. This resolver is typically used when an entry DN
+     * can be formatted directly from the user identifier. For instance, entry DNs of the form
+     * uid=dfisher,ou=people,dc=ldaptive,dc=org could be formatted
+     * from uid=%s,ou=people,dc=ldaptive,dc=org.
+     *
+     * Configured over ldap.dnformat
+     */
+    private final String dnFormat;
+    /**
+     * Configuration of PooledCompareAuthenticationHandler.
+     * Authenticates an entry DN by performing an LDAP compare operation on the userPassword attribute.
+     * This authentication handler should be used in cases where you do not have authorization to perform
+     * binds, but do have authorization to read the userPassword attribute.
+     *
+     * Configured over ldap.userpasswordattribute
+     */
+    private final String userPasswordAttribute;
+
+    private final String trustCertificates;
+    private final String keystore;
+    private final String keystorePassword;
+    private final String keystoreType;
+
+
     private final boolean failFast;
     private final long    idleTime;
     private final long    prunePeriod;
     private final long    blockWaitTime;
-    private final boolean subtreeSearch; //true
+
 
     private AuthenticationType type;
 
 
-    private final int     timeoutMs;
-    private final int     readTimeoutMs;
-    private final boolean useSsl;
     private final boolean useStartTls;
-    private final long    connectTimeout;
-    private final String  providerClass;
 
-    /**
-     *
-     */
-    private final String              bindDn;
-    private final String              bindCredential;
+    private final String providerClass;
+
+    private final boolean             useSsl;
     private final String              saslRealm;
     private final Mechanism           saslMechanism;
     private final String              saslAuthorizationId;
@@ -136,31 +185,37 @@ public class LdapConfiguration {
                              @Named("ldap.basedn") String baseDn,
                              @Named("ldap.userfilter") String userFilter,
                              @Named("ldap.allowmultipledns") boolean allowMultipleDns,
-                             @Named("ldap.userfilter") boolean validatePeriodically,
+                             @Named("ldap.subtreesearch") boolean subtreeSearch,
+
                              @Named("ldap.bind.dn") String bindDn,
-                             @Named("ldap.userfilter") String dnFormat,
-                             @Named("ldap.userfilter") String principalAttributePassword,
-                             @Named("ldap.userfilter") boolean allowMultiplePrincipalAttributeValues,
+                             @Named("ldap.bind.password") String bindCredential,
+
+
+                             @Named("ldap.pool.minsize") int minPoolSize,
+                             @Named("ldap.pool.maxsize") int maxPoolSize,
+                             @Named("ldap.pool.validate.oncheckout") boolean validateOnCheckout,
+                             @Named("ldap.pool.validate.oncheckin") boolean validateOnCheckin,
+                             @Named("ldap.pool.validate.period_ms") long validatePeriod,
+                             @Named("ldap.pool.validate.periodically") boolean validatePeriodically,
+                             @Named("ldap.connecttimeout_ms") long connectTimeout,
+                             @Named("ldap.responsetimeout_ms") long responseTimeout,
+
+
+                             @Named("ldap.dnformat") String dnFormat,
+                             @Named("ldap.userpasswordattribute") String userPasswordAttribute,
+
                              @Named("ldap.userfilter") String trustCertificates,
                              @Named("ldap.userfilter") String keystore,
                              @Named("ldap.userfilter") String keystorePassword,
                              @Named("ldap.userfilter") String keystoreType,
-                             @Named("ldap.userfilter") int minPoolSize,
-                             @Named("ldap.userfilter") int maxPoolSize,
-                             @Named("ldap.userfilter") boolean validateOnCheckout,
-                             @Named("ldap.userfilter") long validatePeriod,
                              @Named("ldap.userfilter") boolean failFast,
                              @Named("ldap.userfilter") long idleTime,
                              @Named("ldap.userfilter") long prunePeriod,
                              @Named("ldap.userfilter") long blockWaitTime,
-                             @Named("ldap.userfilter") boolean subtreeSearch,
                              @Named("ldap.userfilter") AuthenticationType type,
-                             @Named("ldap.bind.credential") String bindCredential,
-                             @Named("ldap.connection.timeout_ms") int timeoutMs,
-                             @Named("ldap.connection.read_timeout_ms") int readTimeoutMs,
+
                              @Named("ldap.userfilter") boolean useSsl,
                              @Named("ldap.userfilter") boolean useStartTls,
-                             @Named("ldap.userfilter") long connectTimeout,
                              @Named("ldap.userfilter") String providerClass,
                              @Named("ldap.userfilter") String saslRealm,
                              @Named("ldap.userfilter") Mechanism saslMechanism,
@@ -173,11 +228,11 @@ public class LdapConfiguration {
         this.baseDn = baseDn;
         this.userFilter = userFilter;
         this.validatePeriodically = validatePeriodically;
+        this.responseTimeout = responseTimeout;
         this.bindDn = bindDn;
         this.allowMultipleDns = allowMultipleDns;
         this.dnFormat = dnFormat;
-        this.principalAttributePassword = principalAttributePassword;
-        this.allowMultiplePrincipalAttributeValues = allowMultiplePrincipalAttributeValues;
+        this.userPasswordAttribute = userPasswordAttribute;
         this.trustCertificates = trustCertificates;
         this.keystore = keystore;
         this.keystorePassword = keystorePassword;
@@ -185,6 +240,7 @@ public class LdapConfiguration {
         this.minPoolSize = minPoolSize;
         this.maxPoolSize = maxPoolSize;
         this.validateOnCheckout = validateOnCheckout;
+        this.validateOnCheckin = validateOnCheckin;
         this.validatePeriod = validatePeriod;
         this.failFast = failFast;
         this.idleTime = idleTime;
@@ -193,8 +249,6 @@ public class LdapConfiguration {
         this.subtreeSearch = subtreeSearch;
         this.type = type;
         this.bindCredential = bindCredential;
-        this.timeoutMs = timeoutMs;
-        this.readTimeoutMs = readTimeoutMs;
         this.useSsl = useSsl;
         this.useStartTls = useStartTls;
         this.connectTimeout = connectTimeout;
@@ -220,8 +274,8 @@ public class LdapConfiguration {
         return dnFormat;
     }
 
-    public String getPrincipalAttributePassword() {
-        return principalAttributePassword;
+    public String getUserPasswordAttribute() {
+        return userPasswordAttribute;
     }
 
     public boolean isSubtreeSearch() {
@@ -264,6 +318,10 @@ public class LdapConfiguration {
         return validateOnCheckout;
     }
 
+    public boolean isValidateOnCheckin() {
+        return validateOnCheckin;
+    }
+
     public boolean isValidatePeriodically() {
         return validatePeriodically;
     }
@@ -303,6 +361,11 @@ public class LdapConfiguration {
     public long getConnectTimeout() {
         return connectTimeout;
     }
+
+    public long getResponseTimeout() {
+        return responseTimeout;
+    }
+
 
     public String getProviderClass() {
         return providerClass;

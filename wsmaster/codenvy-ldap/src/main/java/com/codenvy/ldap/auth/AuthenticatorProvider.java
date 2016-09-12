@@ -88,7 +88,7 @@ public class AuthenticatorProvider implements Provider<Authenticator> {
         resolver.setUserFilter(configuration.getUserFilter());
 
         final Authenticator auth;
-        if (Strings.isNullOrEmpty(configuration.getPrincipalAttributePassword())) {
+        if (Strings.isNullOrEmpty(configuration.getUserPasswordAttribute())) {
             auth = new Authenticator(resolver, getPooledBindAuthenticationHandler(connFactory));
         } else {
             auth = new Authenticator(resolver, getPooledCompareAuthenticationHandler(connFactory, configuration));
@@ -122,7 +122,7 @@ public class AuthenticatorProvider implements Provider<Authenticator> {
                                                                                      LdapConfiguration configuration) {
         final PooledCompareAuthenticationHandler handler = new PooledCompareAuthenticationHandler(
                 connFactory);
-        handler.setPasswordAttribute(configuration.getPrincipalAttributePassword());
+        handler.setPasswordAttribute(configuration.getUserPasswordAttribute());
         return handler;
     }
 }

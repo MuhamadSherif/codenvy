@@ -55,14 +55,16 @@ public class LdapConnectionFactoryProvider implements Provider<PooledConnectionF
         pc.setMinPoolSize(configuration.getMinPoolSize());
         pc.setMaxPoolSize(configuration.getMaxPoolSize());
         pc.setValidateOnCheckOut(configuration.isValidateOnCheckout());
+        pc.setValidateOnCheckIn(configuration.isValidateOnCheckin());
         pc.setValidatePeriodically(configuration.isValidatePeriodically());
-        pc.setValidatePeriod(Duration.ofSeconds(configuration.getValidatePeriod()));
+        pc.setValidatePeriod(Duration.ofMillis(configuration.getValidatePeriod()));
 
         final ConnectionConfig cc = new ConnectionConfig();
         cc.setLdapUrl(configuration.getLdapUrl());
         cc.setUseSSL(configuration.isUseSsl());
         cc.setUseStartTLS(configuration.isUseStartTls());
-        cc.setConnectTimeout(Duration.ofSeconds(configuration.getConnectTimeout()));
+        cc.setConnectTimeout(Duration.ofMillis(configuration.getConnectTimeout()));
+        cc.setResponseTimeout(Duration.ofMillis(configuration.getResponseTimeout()));
 
         if (configuration.getTrustCertificates() != null) {
             final X509CredentialConfig cfg = new X509CredentialConfig();
