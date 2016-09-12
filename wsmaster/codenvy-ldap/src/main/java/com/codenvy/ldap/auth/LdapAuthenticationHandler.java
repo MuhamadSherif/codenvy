@@ -12,7 +12,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.auth.sso.server;
+package com.codenvy.ldap.auth;
 
 
 import com.codenvy.api.dao.authentication.AuthenticationHandler;

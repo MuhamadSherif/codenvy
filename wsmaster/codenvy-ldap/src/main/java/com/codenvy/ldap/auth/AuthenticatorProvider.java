@@ -12,8 +12,9 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Codenvy S.A..
  */
-package com.codenvy.auth.sso.server;
+package com.codenvy.ldap.auth;
 
+import com.codenvy.ldap.LdapConfiguration;
 import com.google.common.base.Strings;
 
 import org.ldaptive.auth.Authenticator;
