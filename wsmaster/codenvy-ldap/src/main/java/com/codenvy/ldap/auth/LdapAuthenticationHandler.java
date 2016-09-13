@@ -30,7 +30,11 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 
 /**
- * Created by sj on 08.09.16.
+ * LDAP authentication handler that uses the ldaptive {@code Authenticator} component underneath.
+ * This handler provides simple attribute resolution machinery by reading attributes from the entry
+ * corresponding to the DN of the bound user (in the bound security context) upon successful authentication.
+ *
+ * @author Sergii Kabashniuk
  */
 public class LdapAuthenticationHandler implements AuthenticationHandler {
 
