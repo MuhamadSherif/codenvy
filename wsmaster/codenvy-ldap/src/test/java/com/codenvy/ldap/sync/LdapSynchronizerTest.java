@@ -100,29 +100,29 @@ public class LdapSynchronizerTest {
 
         // first 100 users have additional attributes
         for (int i = 0; i < 100; i++) {
-            createdEntries.add(addLdapUser(i,
-                                           Pair.of("givenName", "test-user-first-name" + i),
-                                           Pair.of("sn", "test-user-last-name"),
-                                           Pair.of("telephoneNumber", "00000000" + i)));
+            createdEntries.add(server.addDefaultLdapUser(i,
+                                                         Pair.of("givenName", "test-user-first-name" + i),
+                                                         Pair.of("sn", "test-user-last-name"),
+                                                         Pair.of("telephoneNumber", "00000000" + i)));
         }
 
         // next 100 users are members of group1
-        final ServerEntry group1 = createLdapGroup("group1");
+        final List<String> group1Members = new ArrayList<>(100);
         for (int i = 100; i < 200; i++) {
-            final ServerEntry entry = addLdapUser(i);
-            group1.add("member", entry.getDn().toString());
+            final ServerEntry entry = server.addDefaultLdapUser(i);
             createdEntries.add(entry);
+            group1Members.add(entry.getDn().toString());
         }
-        server.addEntry(group1);
+        server.addDefaultLdapGroup("group1", group1Members);
 
         // next 100 users are members of group2
-        final ServerEntry group2 = createLdapGroup("group2");
+        final List<String> group2Members = new ArrayList<>(100);
         for (int i = 200; i < 300; i++) {
-            final ServerEntry entry = addLdapUser(i);
-            group2.add("member", entry.getDn().toString());
+            final ServerEntry entry = server.addDefaultLdapUser(i);
             createdEntries.add(entry);
+            group2Members.add(entry.getDn().toString());
         }
-        server.addEntry(group2);
+        server.addDefaultLdapGroup("group2", group2Members);
     }
 
     @AfterClass
@@ -214,32 +214,6 @@ public class LdapSynchronizerTest {
                                                                       .equals("<none>"))
                                                 .map(LdapSynchronizerTest::asUser)
                                                 .collect(toSet()));
-    }
-
-    private ServerEntry addLdapUser(String id, String name, String mail, Pair... other) throws Exception {
-        final ServerEntry entry = server.newEntry("uid", id);
-        entry.put("objectClass", "inetOrgPerson");
-        entry.put("uid", id);
-        entry.put("cn", name);
-        entry.put("mail", mail);
-        entry.put("sn", "<none>");
-        for (Pair pair : other) {
-            entry.put(pair.first.toString(), pair.second.toString());
-        }
-        server.addEntry(entry);
-        return entry;
-    }
-
-    private ServerEntry addLdapUser(int idx, Pair... other) throws Exception {
-        return addLdapUser("id" + idx, "name" + idx, "email" + idx, other);
-    }
-
-    private ServerEntry createLdapGroup(String name) throws Exception {
-        final ServerEntry group = server.newEntry("ou", name);
-        group.put("objectClass", "top", "groupOfNames");
-        group.put("cn", name);
-        group.put("ou", name);
-        return group;
     }
 
     private static UserImpl asUser(ServerEntry entry) {

@@ -33,25 +33,49 @@ import org.apache.directory.shared.ldap.schema.loader.ldif.LdifSchemaLoader;
 import org.apache.directory.shared.ldap.schema.manager.impl.DefaultSchemaManager;
 import org.apache.directory.shared.ldap.schema.registries.SchemaLoader;
 import org.eclipse.che.api.core.util.CustomPortService;
+import org.eclipse.che.commons.lang.Pair;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import static java.nio.file.Files.createTempDirectory;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.che.commons.lang.IoUtil.deleteRecursive;
 
 /**
+ * An embedded ldap server.
+ *
  * @author Yevhenii Voevodin
  */
 public class MyLdapServer {
 
-    private static final String            ADMIN_CN     = "admin";
-    private static final String            ADMIN_PWD    = "password";
-    private static final CustomPortService PORT_SERVICE = new CustomPortService(8000, 10000);
+    private static final String            ADMIN_CN        = "admin";
+    private static final String            ADMIN_PWD       = "password";
+    private static final String            DEFAULT_BASE_DN = "dc=codenvy,dc=com";
+    private static final CustomPortService PORT_SERVICE    = new CustomPortService(8000, 10000);
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    /**
+     * Creates and returns a new instance of {@link MyLdapServer} with default configuration.
+     *
+     * <ul>
+     * <li>partition id - 'codenvy'</li>
+     * <li>partition dn - '{@value #DEFAULT_BASE_DN}'</li>
+     * <li>allowing anonymous access</li>
+     * <li>using temporary generated working directory</li>
+     * </ul>
+     */
+    public static MyLdapServer newDefaultServer() throws Exception {
+        return MyLdapServer.builder()
+                           .setPartitionId("codenvy")
+                           .allowAnonymousAccess()
+                           .setPartitionDn(DEFAULT_BASE_DN)
+                           .useTmpWorkingDir()
+                           .build();
     }
 
     private LdapServer       ldapServer;
@@ -76,7 +100,9 @@ public class MyLdapServer {
         this.url = "ldap://localhost:" + this.port;
         ldapServer = new LdapServer();
         ldapServer.setTransports(new TcpTransport(this.port));
-        ldapServer.setMaxSizeLimit(maxSizeLimit);
+        if (maxSizeLimit > 0) {
+            ldapServer.setMaxSizeLimit(maxSizeLimit);
+        }
         service = initDirectoryService(workingDir,
                                        partitionId,
                                        partitionDn,
@@ -135,6 +161,74 @@ public class MyLdapServer {
      */
     public void addEntry(ServerEntry entry) throws Exception {
         service.getSession().add(entry);
+    }
+
+    /**
+     * Adds a new user which matches the default schema pattern, which is:
+     *
+     * <ul>
+     * <li>objectClass=inetOrgPerson</li>
+     * <li>rdn - uid={id}</li>
+     * <li>cn={name}</li>
+     * <li>mail={mail}</li>
+     * <li>sn={@literal <none>}</li>
+     * <li>other.foreach(pair -> {pair.first}={pair.second})</li>
+     * </ul>
+     *
+     * @return newly created and added entry instance
+     * @throws Exception
+     *         when any error occurs
+     */
+    public ServerEntry addDefaultLdapUser(String id, String name, String mail, Pair... other) throws Exception {
+        final ServerEntry entry = newEntry("uid", id);
+        entry.put("objectClass", "inetOrgPerson");
+        entry.put("uid", id);
+        entry.put("cn", name);
+        entry.put("mail", mail);
+        entry.put("sn", "<none>");
+        for (Pair pair : other) {
+            entry.put(pair.first.toString(), pair.second.toString());
+        }
+        addEntry(entry);
+        return entry;
+    }
+
+    /**
+     * Simplifies creation of test user entry by generating id, name and mail
+     * based on given {@code idx}.
+     *
+     * @see #addDefaultLdapUser(String, String, String, Pair[])
+     */
+    public ServerEntry addDefaultLdapUser(int idx, Pair... other) throws Exception {
+        return addDefaultLdapUser("id" + idx, "name" + idx, "mail" + idx, other);
+    }
+
+    /**
+     * Creates a new group which matches default schema pattern, which is:
+     *
+     * <ul>
+     * <li>objectClass=groupOfNames</li>
+     * <li>rdn - ou={name}</li>
+     * <li>cn={name}</li>
+     * <li>members.foreach(m -> member={m})</li>
+     * </ul>
+     *
+     * @param name
+     *         a name of a group
+     * @return newly created and added group entry
+     * @throws Exception
+     *         when any error occurs
+     */
+    public ServerEntry addDefaultLdapGroup(String name, List<String> members) throws Exception {
+        final ServerEntry group = newEntry("ou", name);
+        group.put("objectClass", "top", "groupOfNames");
+        group.put("cn", name);
+        group.put("ou", name);
+        for (String member : members) {
+            group.add("member", member);
+        }
+        addEntry(group);
+        return group;
     }
 
     /** Returns service instance of this server. */

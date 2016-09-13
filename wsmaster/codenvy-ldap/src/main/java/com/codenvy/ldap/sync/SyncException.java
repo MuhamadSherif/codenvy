@@ -25,7 +25,7 @@ import java.util.Iterator;
  * {@link RuntimeException} as it makes easier to create custom
  * {@link Iterator} implementations.
  * As the {@link LdapSynchronizer} is independent component this exception
- * is used for synchronizer only, it's instances are not published.
+ * is used for synchronizer only, its instances are not published.
  *
  * @author Yevhenii Voevodin
  */
