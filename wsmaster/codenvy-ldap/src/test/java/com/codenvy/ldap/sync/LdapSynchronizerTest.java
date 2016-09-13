@@ -96,7 +96,7 @@ public class LdapSynchronizerTest {
                                                         120_000).get();
 
         // create a set of users
-        createdEntries = new ArrayList<>(200);
+        createdEntries = new ArrayList<>(300);
 
         // first 100 users have additional attributes
         for (int i = 0; i < 100; i++) {
