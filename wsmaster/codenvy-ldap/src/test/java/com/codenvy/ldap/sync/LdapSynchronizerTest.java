@@ -62,7 +62,7 @@ import static org.testng.Assert.assertNotNull;
  * @author Yevhenii Voevodin
  */
 @Listeners(MockitoTestNGListener.class)
-public class SynchronizerTest {
+public class LdapSynchronizerTest {
 
     private static final String BASE_DN = "dc=codenvy,dc=com";
 
@@ -95,29 +95,33 @@ public class SynchronizerTest {
                                                         30_000,
                                                         120_000).get();
 
-        // TODO simplify
         // create a set of users
-        final ServerEntry group1 = createLdapGroup("group1");
-        final ServerEntry group2 = createLdapGroup("group2");
         createdEntries = new ArrayList<>(200);
-        for (int i = 0; i < 200; i++) {
-            final UserImpl user = new UserImpl("id" + i, "mail" + i, "name" + i);
-            final ServerEntry entry = i % 2 == 0 ?
-                                      addLdapUser(user,
-                                                  Pair.of("givenName", "test-user-first-name" + i),
-                                                  Pair.of("sn", "test-user-last-name"),
-                                                  Pair.of("telephoneNumber", "00000000" + i)) :
-                                      addLdapUser(user);
-            if (i % 2 != 0) {
-                if (i < 100) {
-                    group1.add("member", entry.getDn().toString());
-                } else {
-                    group2.add("member", entry.getDn().toString());
-                }
-            }
+
+        // first 100 users have additional attributes
+        for (int i = 0; i < 100; i++) {
+            createdEntries.add(addLdapUser(i,
+                                           Pair.of("givenName", "test-user-first-name" + i),
+                                           Pair.of("sn", "test-user-last-name"),
+                                           Pair.of("telephoneNumber", "00000000" + i)));
+        }
+
+        // next 100 users are members of group1
+        final ServerEntry group1 = createLdapGroup("group1");
+        for (int i = 100; i < 200; i++) {
+            final ServerEntry entry = addLdapUser(i);
+            group1.add("member", entry.getDn().toString());
             createdEntries.add(entry);
         }
         server.addEntry(group1);
+
+        // next 100 users are members of group2
+        final ServerEntry group2 = createLdapGroup("group2");
+        for (int i = 200; i < 300; i++) {
+            final ServerEntry entry = addLdapUser(i);
+            group2.add("member", entry.getDn().toString());
+            createdEntries.add(entry);
+        }
         server.addEntry(group2);
     }
 
@@ -174,7 +178,7 @@ public class SynchronizerTest {
                                                                        .get(0) // <- sn is a required attribute for inetOrgPerson
                                                                        .toString()
                                                                        .equals("<none>"))
-                                                .map(SynchronizerTest::asUser)
+                                                .map(LdapSynchronizerTest::asUser)
                                                 .collect(toSet()));
         for (UserImpl storedUser : storedUsers) {
             final ProfileImpl profile = storedProfiles.get(storedUser.getId());
@@ -205,7 +209,7 @@ public class SynchronizerTest {
 
         final SyncResult syncResult = synchronizer.syncAll();
 
-        assertEquals(syncResult.getCreated(), 100);
+        assertEquals(syncResult.getCreated(), 200);
         assertEquals(syncResult.getRemoved(), 0);
         assertEquals(syncResult.getUpdated(), 0);
         assertEquals(storedUsers, createdEntries.stream()
@@ -213,22 +217,26 @@ public class SynchronizerTest {
                                                                       .get(0) // <- sn is a required attribute for inetOrgPerson
                                                                       .toString()
                                                                       .equals("<none>"))
-                                                .map(SynchronizerTest::asUser)
+                                                .map(LdapSynchronizerTest::asUser)
                                                 .collect(toSet()));
     }
 
-    private ServerEntry addLdapUser(UserImpl user, Pair... other) throws Exception {
-        final ServerEntry entry = server.newEntry("uid", user.getId());
+    private ServerEntry addLdapUser(String id, String name, String mail, Pair... other) throws Exception {
+        final ServerEntry entry = server.newEntry("uid", id);
         entry.put("objectClass", "inetOrgPerson");
-        entry.put("uid", user.getId());
-        entry.put("cn", user.getName());
-        entry.put("mail", user.getEmail());
+        entry.put("uid", id);
+        entry.put("cn", name);
+        entry.put("mail", mail);
         entry.put("sn", "<none>");
         for (Pair pair : other) {
             entry.put(pair.first.toString(), pair.second.toString());
         }
         server.addEntry(entry);
         return entry;
+    }
+
+    private ServerEntry addLdapUser(int idx, Pair... other) throws Exception {
+        return addLdapUser("id" + idx, "name" + idx, "email" + idx, other);
     }
 
     private ServerEntry createLdapGroup(String name) throws Exception {
