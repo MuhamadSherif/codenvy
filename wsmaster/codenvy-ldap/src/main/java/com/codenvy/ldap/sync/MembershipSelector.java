@@ -47,7 +47,7 @@ public class MembershipSelector implements LdapEntrySelector {
                               String groupsFilter,
                               String usersFilter,
                               String membersAttr,
-                              String[] returnAttrs) {
+                              String... returnAttrs) {
         this.baseDn = baseDn;
         this.groupsFilter = groupsFilter;
         this.usersFilter = usersFilter;

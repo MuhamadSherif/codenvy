@@ -39,8 +39,8 @@ public class LdapConnectionFactoryProvider implements Provider<ConnectionFactory
     public LdapConnectionFactoryProvider(@Named("ldap.principal") String principal,
                                          @Named("ldap.password") String password,
                                          @Named("ldap.url") String url,
-                                         @Named("ldap.connection.timeout_ms") int timeoutMs,
-                                         @Named("ldap.connection.read_timeout_ms") int readTimeoutMs) {
+                                         @Named("ldap.connection.timeout_ms") long timeoutMs,
+                                         @Named("ldap.connection.read_timeout_ms") long readTimeoutMs) {
         final ConnectionConfig connConfig = new ConnectionConfig();
         connConfig.setLdapUrl(url);
         connConfig.setConnectionInitializer(new BindConnectionInitializer(principal, new Credential(password)));

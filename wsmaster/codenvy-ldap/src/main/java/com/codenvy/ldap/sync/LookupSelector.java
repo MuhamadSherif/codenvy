@@ -49,7 +49,7 @@ public class LookupSelector implements LdapEntrySelector {
                           long readPageTimeoutMs,
                           String baseDn,
                           String filter,
-                          String[] attributes) {
+                          String... attributes) {
         this.filter = filter;
         this.baseDn = baseDn;
         this.attributes = attributes;

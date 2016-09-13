@@ -122,7 +122,7 @@ public class MyLdapServer {
     /**
      * Stops ldap server, releasing all the acquired resources.
      */
-    public void stop() {
+    public void shutdown() {
         ldapServer.stop();
         PORT_SERVICE.release(port);
         deleteRecursive(workingDir);
@@ -131,6 +131,11 @@ public class MyLdapServer {
     /** Returns this server url. */
     public String getUrl() {
         return url;
+    }
+
+    /** Returns default partition dn. */
+    public String getBaseDn() {
+        return baseDn.toString();
     }
 
     /**
