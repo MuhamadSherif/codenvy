@@ -149,24 +149,19 @@ public class LdapSynchronizerTest {
             return null;
         }).when(profileDao).create(anyObject());
 
-        @SuppressWarnings("unchecked") // obviously the last parameter is a pair of strings
-        final LdapSynchronizer synchronizer = new LdapSynchronizer(connFactory,
-                                                                   () -> entityManager,
-                                                                   userDao,
-                                                                   profileDao,
-                                                                   BASE_DN,
-                                                                   "(&(objectClass=*)(givenName=*))",
-                                                                   null,
-                                                                   null,
-                                                                   null,
-                                                                   null,
-                                                                   -1L,
-                                                                   10,
-                                                                   30_000L,
-                                                                   "uid",
-                                                                   "cn",
-                                                                   "mail",
-                                                                   new Pair[] {Pair.of("firstName", "givenName")});
+        final LdapSynchronizer synchronizer =
+                new LdapSynchronizerBuilder().setConnectionFactory(connFactory)
+                                             .setEntityManagerProvider(() -> entityManager)
+                                             .setUserDao(userDao)
+                                             .setProfileDao(profileDao)
+                                             .setBaseDn(BASE_DN)
+                                             .setUsersFilter("(&(objectClass=*)(givenName=*))")
+                                             .setPageSize(10)
+                                             .setUserIdAttr("uid")
+                                             .setUserNameAttr("cn")
+                                             .setUserEmailAttr("mail")
+                                             .addProfileAttr("firstName", "givenName")
+                                             .build();
 
         final SyncResult syncResult = synchronizer.syncAll();
 
