@@ -274,6 +274,52 @@ public class LdapConfiguration {
     private final QualityOfProtection saslQualityOfProtection;
 
 
+    public LdapConfiguration(String ldapUrl, String baseDn, String userFilter, boolean allowMultipleDns, boolean subtreeSearch,
+                             String bindDn, String bindCredential, int minPoolSize, int maxPoolSize, boolean validateOnCheckout,
+                             boolean validateOnCheckin, boolean validatePeriodically, long validatePeriod, boolean failFast, long idleTime,
+                             long prunePeriod, long blockWaitTime, long connectTimeout, long responseTimeout, String dnFormat,
+                             String userPasswordAttribute, boolean useSsl, boolean useStartTls,
+                             AuthenticationType type, String providerClass, String trustCertificates, String keystore,
+                             String keystorePassword, String keystoreType, Mechanism saslMechanism, String saslRealm,
+                             String saslAuthorizationId, SecurityStrength saslSecurityStrength, Boolean saslMutualAuth,
+                             QualityOfProtection saslQualityOfProtection) {
+        this.ldapUrl = ldapUrl;
+        this.baseDn = baseDn;
+        this.userFilter = userFilter;
+        this.allowMultipleDns = allowMultipleDns;
+        this.subtreeSearch = subtreeSearch;
+        this.bindDn = bindDn;
+        this.bindCredential = bindCredential;
+        this.minPoolSize = minPoolSize;
+        this.maxPoolSize = maxPoolSize;
+        this.validateOnCheckout = validateOnCheckout;
+        this.validateOnCheckin = validateOnCheckin;
+        this.validatePeriodically = validatePeriodically;
+        this.validatePeriod = validatePeriod;
+        this.failFast = failFast;
+        this.idleTime = idleTime;
+        this.prunePeriod = prunePeriod;
+        this.blockWaitTime = blockWaitTime;
+        this.connectTimeout = connectTimeout;
+        this.responseTimeout = responseTimeout;
+        this.dnFormat = dnFormat;
+        this.userPasswordAttribute = userPasswordAttribute;
+        this.useSsl = useSsl;
+        this.useStartTls = useStartTls;
+        this.type = type;
+        this.providerClass = providerClass;
+        this.trustCertificates = trustCertificates;
+        this.keystore = keystore;
+        this.keystorePassword = keystorePassword;
+        this.keystoreType = keystoreType;
+        this.saslMechanism = saslMechanism;
+        this.saslRealm = saslRealm;
+        this.saslAuthorizationId = saslAuthorizationId;
+        this.saslSecurityStrength = saslSecurityStrength;
+        this.saslMutualAuth = saslMutualAuth;
+        this.saslQualityOfProtection = saslQualityOfProtection;
+    }
+
     public LdapConfiguration(@NotNull @Named("ldap.url") String ldapUrl,
                              @Named("ldap.basedn") String baseDn,
                              @Named("ldap.userfilter") String userFilter,
@@ -314,45 +360,48 @@ public class LdapConfiguration {
                              @Named("ldap.sasl.realm") String saslRealm,
                              @Named("ldap.sasl.mechanism") String saslMechanism,
                              @Named("ldap.sasl.authorizationid") String saslAuthorizationId,
-                             @Named("ldap.sasl.securitystrength") SecurityStrength saslSecurityStrength,
-                             @Named("ldap.sasl.mutualauth") String saslMutualAuth,
+                             @Named("ldap.sasl.securitystrength") String saslSecurityStrength,
+                             @Named("ldap.sasl.mutualauth") boolean saslMutualAuth,
                              @Named("ldap.sasl.qualityofprotection") String saslQualityOfProtection) {
 
-        this.ldapUrl = ldapUrl;
-        this.baseDn = baseDn;
-        this.userFilter = userFilter;
-        this.validatePeriodically = validatePeriodically;
-        this.responseTimeout = responseTimeout;
-        this.bindDn = bindDn;
-        this.allowMultipleDns = allowMultipleDns;
-        this.dnFormat = dnFormat;
-        this.userPasswordAttribute = userPasswordAttribute;
-        this.trustCertificates = trustCertificates;
-        this.keystore = keystore;
-        this.keystorePassword = keystorePassword;
-        this.keystoreType = keystoreType;
-        this.minPoolSize = minPoolSize;
-        this.maxPoolSize = maxPoolSize;
-        this.validateOnCheckout = validateOnCheckout;
-        this.validateOnCheckin = validateOnCheckin;
-        this.validatePeriod = validatePeriod;
-        this.failFast = failFast;
-        this.idleTime = idleTime;
-        this.prunePeriod = prunePeriod;
-        this.blockWaitTime = blockWaitTime;
-        this.subtreeSearch = subtreeSearch;
-        this.type = AuthenticationType.valueOf(type);
-        this.bindCredential = bindCredential;
-        this.useSsl = useSsl;
-        this.useStartTls = useStartTls;
-        this.connectTimeout = connectTimeout;
-        this.providerClass = providerClass;
-        this.saslRealm = saslRealm;
-        this.saslMechanism = Mechanism.valueOf(saslMechanism);
-        this.saslAuthorizationId = saslAuthorizationId;
-        this.saslSecurityStrength = saslSecurityStrength;
-        this.saslMutualAuth = Boolean.valueOf(saslMutualAuth);
-        this.saslQualityOfProtection = QualityOfProtection.valueOf(saslQualityOfProtection);
+
+        this(ldapUrl,
+             baseDn,
+             userFilter,
+             allowMultipleDns,
+             subtreeSearch,
+             bindDn,
+             bindCredential,
+             minPoolSize,
+             maxPoolSize,
+             validateOnCheckout,
+             validateOnCheckin,
+             validatePeriodically,
+             validatePeriod,
+             failFast,
+             idleTime,
+             prunePeriod,
+             blockWaitTime,
+             connectTimeout,
+             responseTimeout,
+             dnFormat,
+             userPasswordAttribute,
+             useSsl,
+             useStartTls,
+             AuthenticationType.valueOf(type),
+             providerClass,
+             trustCertificates,
+             keystore,
+             keystorePassword,
+             keystoreType,
+             Mechanism.valueOf(saslMechanism),
+             saslRealm,
+             saslAuthorizationId,
+             SecurityStrength.valueOf(saslSecurityStrength),
+             saslMutualAuth,
+             QualityOfProtection.valueOf(saslQualityOfProtection)
+            );
+
     }
 
 
