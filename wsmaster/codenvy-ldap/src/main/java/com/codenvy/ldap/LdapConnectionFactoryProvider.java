@@ -132,12 +132,12 @@ public class LdapConnectionFactoryProvider implements Provider<PooledConnectionF
         }
         final BlockingConnectionPool cp = new BlockingConnectionPool(pc, bindCf);
 
-        cp.setBlockWaitTime(Duration.ofSeconds(configuration.getBlockWaitTime()));
+        cp.setBlockWaitTime(Duration.ofMillis(configuration.getBlockWaitTime()));
         cp.setPoolConfig(pc);
 
         final IdlePruneStrategy strategy = new IdlePruneStrategy();
-        strategy.setIdleTime(Duration.ofSeconds(configuration.getIdleTime()));
-        strategy.setPrunePeriod(Duration.ofSeconds(configuration.getPrunePeriod()));
+        strategy.setIdleTime(Duration.ofMillis(configuration.getIdleTime()));
+        strategy.setPrunePeriod(Duration.ofMillis(configuration.getPrunePeriod()));
 
         cp.setPruneStrategy(strategy);
         cp.setValidator(new SearchValidator());

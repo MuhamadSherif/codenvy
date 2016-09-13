@@ -90,8 +90,6 @@ public class LdapConfiguration {
      * Configured over ldap.bind.password
      */
     private final String  bindCredential;
-
-
     /**
      * 	size the pool should be initialized to and pruned to.
      *  Configured over ldap.pool.minsize
@@ -124,6 +122,32 @@ public class LdapConfiguration {
     private final long    validatePeriod;
 
     /**
+     * Whether should throw if pooling configuration requirements are not met.
+     *
+     * Configured over ldap.pool.failfast
+     */
+    private final boolean failFast;
+
+    /**
+     * Time  at which a connection should be considered idle and become
+     * a candidate for removal from the pool.
+     *
+     * Configured over ldap.pool.idle_ms
+     */
+    private final long idleTime;
+    /**
+     * 	Period at which pool should be pruned.
+     *
+     * 	Configured over ldap.pool.prune_ms
+     */
+    private final long prunePeriod;
+    /**
+     * Duration to wait for an available connection
+     *
+     * 	Configured over ldap.pool.blockwait_ms
+     */
+    private final long blockWaitTime;
+    /**
      * Maximum amount of time that connects will block.
      * Configured over ldap.connecttimeout_ms
      */
@@ -142,7 +166,7 @@ public class LdapConfiguration {
      *
      * Configured over ldap.dnformat
      */
-    private final String dnFormat;
+    private final String  dnFormat;
     /**
      * Configuration of PooledCompareAuthenticationHandler.
      * Authenticates an entry DN by performing an LDAP compare operation on the userPassword attribute.
@@ -151,28 +175,39 @@ public class LdapConfiguration {
      *
      * Configured over ldap.userpasswordattribute
      */
-    private final String userPasswordAttribute;
+    private final String  userPasswordAttribute;
+    /**
+     * When transmitting sensitive data to or from an LDAP it’s important to use a secure connection.
+     * Connect to LDAP using SSL protocol.
+     *
+     * Configured over ldap.usessl
+     */
+    private final boolean useSsl;
+    /**
+     * StartTLS allows the client to upgrade and downgrade the security of the connection as needed
+     * Connect to LDAP using startTLS.
+     *
+     * Configured over ldap.usestarttls
+     */
+    private final boolean useStartTls;
 
     private final String trustCertificates;
     private final String keystore;
     private final String keystorePassword;
     private final String keystoreType;
 
+    /**
+     *  Type authentication to use.
+     *  AD - Active Directory. Users authenticate with sAMAccountName.
+     *  AUTHENTICATED - Authenticated Search.  Manager bind/search followed by user simple bind.
+     *  ANONYMOUS -  Anonymous search followed by user simple bind.
+     *  DIRECT -  Direct Bind. Compute user DN from format string and perform simple bind.
+     *  SASL - SASL bind search.
+     */
+    private final AuthenticationType type;
+    private final String             providerClass;
 
-    private final boolean failFast;
-    private final long    idleTime;
-    private final long    prunePeriod;
-    private final long    blockWaitTime;
 
-
-    private AuthenticationType type;
-
-
-    private final boolean useStartTls;
-
-    private final String providerClass;
-
-    private final boolean             useSsl;
     private final String              saslRealm;
     private final Mechanism           saslMechanism;
     private final String              saslAuthorizationId;
@@ -186,37 +221,33 @@ public class LdapConfiguration {
                              @Named("ldap.userfilter") String userFilter,
                              @Named("ldap.allowmultipledns") boolean allowMultipleDns,
                              @Named("ldap.subtreesearch") boolean subtreeSearch,
-
                              @Named("ldap.bind.dn") String bindDn,
                              @Named("ldap.bind.password") String bindCredential,
-
-
                              @Named("ldap.pool.minsize") int minPoolSize,
                              @Named("ldap.pool.maxsize") int maxPoolSize,
                              @Named("ldap.pool.validate.oncheckout") boolean validateOnCheckout,
                              @Named("ldap.pool.validate.oncheckin") boolean validateOnCheckin,
                              @Named("ldap.pool.validate.period_ms") long validatePeriod,
                              @Named("ldap.pool.validate.periodically") boolean validatePeriodically,
+                             @Named("ldap.pool.failfast") boolean failFast,
+                             @Named("ldap.pool.idle_ms") long idleTime,
+                             @Named("ldap.pool.prune_ms") long prunePeriod,
+                             @Named("ldap.pool.blockwait_ms") long blockWaitTime,
                              @Named("ldap.connecttimeout_ms") long connectTimeout,
                              @Named("ldap.responsetimeout_ms") long responseTimeout,
-
-
                              @Named("ldap.dnformat") String dnFormat,
                              @Named("ldap.userpasswordattribute") String userPasswordAttribute,
+                             @Named("ldap.usessl") boolean useSsl,
+                             @Named("ldap.usestarttls") boolean useStartTls,
 
                              @Named("ldap.userfilter") String trustCertificates,
                              @Named("ldap.userfilter") String keystore,
                              @Named("ldap.userfilter") String keystorePassword,
                              @Named("ldap.userfilter") String keystoreType,
-                             @Named("ldap.userfilter") boolean failFast,
-                             @Named("ldap.userfilter") long idleTime,
-                             @Named("ldap.userfilter") long prunePeriod,
-                             @Named("ldap.userfilter") long blockWaitTime,
-                             @Named("ldap.userfilter") AuthenticationType type,
 
-                             @Named("ldap.userfilter") boolean useSsl,
-                             @Named("ldap.userfilter") boolean useStartTls,
+                             @Named("ldap.userfilter") AuthenticationType type,
                              @Named("ldap.userfilter") String providerClass,
+
                              @Named("ldap.userfilter") String saslRealm,
                              @Named("ldap.userfilter") Mechanism saslMechanism,
                              @Named("ldap.userfilter") String saslAuthorizationId,
