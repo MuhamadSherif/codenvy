@@ -166,7 +166,7 @@ public class LdapConfiguration {
      *
      * Configured over ldap.dnformat
      */
-    private final String  dnFormat;
+    private final String              dnFormat;
     /**
      * Configuration of PooledCompareAuthenticationHandler.
      * Authenticates an entry DN by performing an LDAP compare operation on the userPassword attribute.
@@ -175,27 +175,21 @@ public class LdapConfiguration {
      *
      * Configured over ldap.userpasswordattribute
      */
-    private final String  userPasswordAttribute;
+    private final String              userPasswordAttribute;
     /**
      * When transmitting sensitive data to or from an LDAP it’s important to use a secure connection.
      * Connect to LDAP using SSL protocol.
      *
      * Configured over ldap.usessl
      */
-    private final boolean useSsl;
+    private final boolean             useSsl;
     /**
      * StartTLS allows the client to upgrade and downgrade the security of the connection as needed
      * Connect to LDAP using startTLS.
      *
      * Configured over ldap.usestarttls
      */
-    private final boolean useStartTls;
-
-    private final String trustCertificates;
-    private final String keystore;
-    private final String keystorePassword;
-    private final String keystoreType;
-
+    private final boolean             useStartTls;
     /**
      *  Type authentication to use.
      *  AD - Active Directory. Users authenticate with sAMAccountName.
@@ -203,16 +197,80 @@ public class LdapConfiguration {
      *  ANONYMOUS -  Anonymous search followed by user simple bind.
      *  DIRECT -  Direct Bind. Compute user DN from format string and perform simple bind.
      *  SASL - SASL bind search.
+     *
+     * Configured over ldap.authenticationtype
      */
-    private final AuthenticationType type;
-    private final String             providerClass;
-
-
-    private final String              saslRealm;
+    private final AuthenticationType  type;
+    /**
+     * Ldaptive does not implement any of the LDAP protocol.
+     * Instead, LDAP operations are delegated to what we call a provider.
+     * This allows developers and deployers to change the underlying library
+     * that provides the LDAP implementation without modifying any code.
+     * By default the JNDI provider is used, but a provider can be specified programmatically
+     *
+     * Configured over ldap.provider
+     */
+    private final String              providerClass;
+    /**
+     * Name of the trust certificates to use for the SSL connection.
+     *
+     * Configured over ldap.ssl.trustcertificates
+     *
+     */
+    private final String              trustCertificates;
+    /**
+     * Name of the keystore to use for the SSL connection
+     *
+     * Configured over ldap.ssl.keystore.name
+     */
+    private final String              keystore;
+    /**
+     * Password needed to open the keystore.
+     *
+     * Configured over ldap.ssl.keystore.password
+     */
+    private final String              keystorePassword;
+    /**
+     * Keystore type.
+     *
+     * Configured over ldap.ssl.keystore.type
+     */
+    private final String              keystoreType;
+    /**
+     * SASL mechanisms
+     *
+     * Configured over ldap.sasl.mechanism
+     */
     private final Mechanism           saslMechanism;
+    /**
+     * Sasl realm. Configuration data for SASL GSSAPI authentication.
+     *
+     * Configured over ldap.sasl.realm
+     */
+    private final String              saslRealm;
+    /**
+     * Sasl authorization id
+     *
+     * Configured over ldap.sasl.authorizationid
+     */
     private final String              saslAuthorizationId;
+    /**
+     * sasl security strength.
+     *
+     * Configured over ldap.sasl.securitystrength
+     */
     private final SecurityStrength    saslSecurityStrength;
+    /**
+     * Sasl perform mutual authentication.
+     *
+     * Configured over ldap.sasl.mutualauth
+     */
     private final Boolean             saslMutualAuth;
+    /**
+     * sasl quality of protection
+     *
+     * Configured over ldap.sasl.qualityofprotection
+     */
     private final QualityOfProtection saslQualityOfProtection;
 
 
@@ -223,6 +281,16 @@ public class LdapConfiguration {
                              @Named("ldap.subtreesearch") boolean subtreeSearch,
                              @Named("ldap.bind.dn") String bindDn,
                              @Named("ldap.bind.password") String bindCredential,
+
+                             @Named("ldap.dnformat") String dnFormat,
+                             @Named("ldap.userpasswordattribute") String userPasswordAttribute,
+
+                             @Named("ldap.usessl") boolean useSsl,
+                             @Named("ldap.usestarttls") boolean useStartTls,
+                             @Named("ldap.authenticationtype") String type,
+                             @Named("ldap.provider") String providerClass,
+
+
                              @Named("ldap.pool.minsize") int minPoolSize,
                              @Named("ldap.pool.maxsize") int maxPoolSize,
                              @Named("ldap.pool.validate.oncheckout") boolean validateOnCheckout,
@@ -235,25 +303,20 @@ public class LdapConfiguration {
                              @Named("ldap.pool.blockwait_ms") long blockWaitTime,
                              @Named("ldap.connecttimeout_ms") long connectTimeout,
                              @Named("ldap.responsetimeout_ms") long responseTimeout,
-                             @Named("ldap.dnformat") String dnFormat,
-                             @Named("ldap.userpasswordattribute") String userPasswordAttribute,
-                             @Named("ldap.usessl") boolean useSsl,
-                             @Named("ldap.usestarttls") boolean useStartTls,
 
-                             @Named("ldap.userfilter") String trustCertificates,
-                             @Named("ldap.userfilter") String keystore,
-                             @Named("ldap.userfilter") String keystorePassword,
-                             @Named("ldap.userfilter") String keystoreType,
 
-                             @Named("ldap.userfilter") AuthenticationType type,
-                             @Named("ldap.userfilter") String providerClass,
+                             @Named("ldap.ssl.trustcertificates") String trustCertificates,
+                             @Named("ldap.ssl.keystore.name") String keystore,
+                             @Named("ldap.ssl.keystore.password") String keystorePassword,
+                             @Named("ldap.ssl.keystore.type") String keystoreType,
 
-                             @Named("ldap.userfilter") String saslRealm,
-                             @Named("ldap.userfilter") Mechanism saslMechanism,
-                             @Named("ldap.userfilter") String saslAuthorizationId,
-                             @Named("ldap.userfilter") SecurityStrength saslSecurityStrength,
-                             @Named("ldap.userfilter") Boolean saslMutualAuth,
-                             @Named("ldap.userfilter") QualityOfProtection saslQualityOfProtection) {
+
+                             @Named("ldap.sasl.realm") String saslRealm,
+                             @Named("ldap.sasl.mechanism") String saslMechanism,
+                             @Named("ldap.sasl.authorizationid") String saslAuthorizationId,
+                             @Named("ldap.sasl.securitystrength") SecurityStrength saslSecurityStrength,
+                             @Named("ldap.sasl.mutualauth") String saslMutualAuth,
+                             @Named("ldap.sasl.qualityofprotection") String saslQualityOfProtection) {
 
         this.ldapUrl = ldapUrl;
         this.baseDn = baseDn;
@@ -278,18 +341,18 @@ public class LdapConfiguration {
         this.prunePeriod = prunePeriod;
         this.blockWaitTime = blockWaitTime;
         this.subtreeSearch = subtreeSearch;
-        this.type = type;
+        this.type = AuthenticationType.valueOf(type);
         this.bindCredential = bindCredential;
         this.useSsl = useSsl;
         this.useStartTls = useStartTls;
         this.connectTimeout = connectTimeout;
         this.providerClass = providerClass;
         this.saslRealm = saslRealm;
-        this.saslMechanism = saslMechanism;
+        this.saslMechanism = Mechanism.valueOf(saslMechanism);
         this.saslAuthorizationId = saslAuthorizationId;
         this.saslSecurityStrength = saslSecurityStrength;
-        this.saslMutualAuth = saslMutualAuth;
-        this.saslQualityOfProtection = saslQualityOfProtection;
+        this.saslMutualAuth = Boolean.valueOf(saslMutualAuth);
+        this.saslQualityOfProtection = QualityOfProtection.valueOf(saslQualityOfProtection);
     }
 
 
