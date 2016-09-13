@@ -14,14 +14,18 @@
  */
 package com.codenvy.api.audit.server;
 
-import com.codenvy.api.license.server.license.CodenvyLicense;
-import com.codenvy.api.license.server.license.CodenvyLicenseManager;
+import com.codenvy.api.license.CodenvyLicense;
+import com.codenvy.api.license.LicenseException;
+import com.codenvy.api.license.server.CodenvyLicenseManager;
 import com.codenvy.api.permission.server.PermissionManager;
 import com.codenvy.api.permission.server.PermissionsImpl;
 import com.codenvy.api.user.server.dao.AdminUserDao;
 import com.jayway.restassured.response.Response;
 
+import org.eclipse.che.api.core.ConflictException;
+import org.eclipse.che.api.core.NotFoundException;
 import org.eclipse.che.api.core.Page;
+import org.eclipse.che.api.core.ServerException;
 import org.eclipse.che.api.user.server.model.impl.UserImpl;
 import org.eclipse.che.api.workspace.server.WorkspaceManager;
 import org.eclipse.che.api.workspace.server.model.impl.WorkspaceConfigImpl;
@@ -30,6 +34,7 @@ import org.everrest.assured.EverrestJetty;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
@@ -56,19 +61,62 @@ import static org.testng.Assert.assertEquals;
 @Listeners(value = {EverrestJetty.class, MockitoTestNGListener.class})
 public class AuditServiceTest {
 
+    private static final String FULL_AUDIT_REPORT =
+            "Number of all users: 2\n" +
+            "Number of users licensed: 15\n" +
+            "Date when license expires: 01 January 2016\n" +
+            "user1@email.com is owner of 1 workspace and has permissions in 2 workspaces\n" +
+            "   └ Workspace1Name owner: true permissions: [read, use, run, configure, setPermissions, delete]\n" +
+            "   └ Workspace2Name owner: false permissions: [read, use, run, configure, setPermissions]\n" +
+            "user2@email.com is owner of 1 workspace and has permissions in 1 workspace\n" +
+            "   └ Workspace3Name owner: true permissions: [read, use, run, configure, setPermissions, delete]\n";
+    private static final String AUDIT_REPORT_WITHOUT_LICENSE =
+            "Number of all users: 2\n" +
+            "Failed to retrieve license!\n" +
+            "user1@email.com is owner of 1 workspace and has permissions in 2 workspaces\n" +
+            "   └ Workspace1Name owner: true permissions: [read, use, run, configure, setPermissions, delete]\n" +
+            "   └ Workspace2Name owner: false permissions: [read, use, run, configure, setPermissions]\n" +
+            "user2@email.com is owner of 1 workspace and has permissions in 1 workspace\n" +
+            "   └ Workspace3Name owner: true permissions: [read, use, run, configure, setPermissions, delete]\n";
+    private static final String AUDIT_REPORT_WITHOUT_USER_WORKSPACES =
+            "Number of all users: 2\n" +
+            "Number of users licensed: 15\n" +
+            "Date when license expires: 01 January 2016\n" +
+            "   └ Failed to receive list of related workspaces!\n" +
+            "user2@email.com is owner of 1 workspace and has permissions in 1 workspace\n" +
+            "   └ Workspace3Name owner: true permissions: [read, use, run, configure, setPermissions, delete]\n";
+    private static final String AUDIT_REPORT_WITHOUT_WORKSPACE_PERMISSIONS =
+            "Number of all users: 2\n" +
+            "Number of users licensed: 15\n" +
+            "Date when license expires: 01 January 2016\n" +
+            "user1@email.com is owner of 1 workspace and has permissions in 2 workspaces\n" +
+            "   └ Workspace1Name owner: true permissions: [read, use, run, configure, setPermissions, delete]\n" +
+            "   └ Workspace2Name owner: false permissions: Failed to retrieve workspace permissions! Permissions was not found\n" +
+            "user2@email.com is owner of 1 workspace and has permissions in 1 workspace\n" +
+            "   └ Workspace3Name owner: true permissions: [read, use, run, configure, setPermissions, delete]\n";
+    private static final String AUDIT_REPORT_WITHOUT_WORKSPACE_ID =
+            "Number of all users: 2\n" +
+            "Number of users licensed: 15\n" +
+            "Date when license expires: 01 January 2016\n" +
+            "user1@email.com is owner of 1 workspace and has permissions in 2 workspaces\n" +
+            "   └ Workspace1Name owner: true permissions: [read, use, run, configure, setPermissions, delete]\n" +
+            "   └ Workspace2Name owner: false permissions: Failed to retrieve workspace Id!\n" +
+            "user2@email.com is owner of 1 workspace and has permissions in 1 workspace\n" +
+            "   └ Workspace3Name owner: true permissions: [read, use, run, configure, setPermissions, delete]\n";
+
     @Mock
-    private AdminUserDao      adminUserDao;
+    private AdminUserDao          adminUserDao;
     @Mock
-    private WorkspaceManager  workspaceManager;
+    private WorkspaceManager      workspaceManager;
     @Mock
-    private PermissionManager permissionManager;
+    private PermissionManager     permissionManager;
     @Mock
     private CodenvyLicenseManager licenseManager;
     @InjectMocks
-    private AuditService      service;
+    private AuditService          service;
 
-    @Test
-    public void shouldReturnAuditReport() throws Exception {
+    @BeforeMethod
+    public void setUp() throws Exception {
         //License
         CodenvyLicense license = mock(CodenvyLicense.class);
         when(license.getNumberOfUsers()).thenReturn(15);
@@ -129,13 +177,80 @@ public class AuditServiceTest {
         when(adminUserDao.getAll(1, 0)).thenReturn(page);
         when(adminUserDao.getAll(20, 0)).thenReturn(page);
         when(adminUserDao.getAll(20, 2)).thenReturn(emptyPage);
+    }
+
+    @Test
+    public void shouldReturnFullAuditReport() throws Exception {
+        //when
         final Response response = given().auth()
                                          .basic(ADMIN_USER_NAME, ADMIN_USER_PASSWORD)
                                          .when()
                                          .get(SECURE_PATH + "/audit");
 
+        //then
         assertEquals(response.getStatusCode(), 200);
+        assertEquals(response.print(), FULL_AUDIT_REPORT);
+    }
 
-        response.getBody().print();
+    @Test
+    public void shouldReturnAuditReportWithoutLicenseInfoIfFailedToRetrieveLicense() throws Exception {
+        //given
+        when(licenseManager.load()).thenThrow(new LicenseException("Failed to retrieve license info"));
+
+        //when
+        final Response response = given().auth()
+                                         .basic(ADMIN_USER_NAME, ADMIN_USER_PASSWORD)
+                                         .when()
+                                         .get(SECURE_PATH + "/audit");
+
+        //then
+        assertEquals(response.print(), AUDIT_REPORT_WITHOUT_LICENSE);
+    }
+
+    @Test
+    public void shouldReturnAuditReportWithoutUserWorkspacesIfFailedToRetrieveTheListOfHisWorkspaces() throws Exception {
+        //given
+        when(workspaceManager.getWorkspaces(eq("User1Id"))).thenThrow(new ServerException("Failed to retrieve workspaces"));
+
+        //when
+        final Response response = given().auth()
+                                         .basic(ADMIN_USER_NAME, ADMIN_USER_PASSWORD)
+                                         .when()
+                                         .get(SECURE_PATH + "/audit");
+
+        //then
+        assertEquals(response.print(), AUDIT_REPORT_WITHOUT_USER_WORKSPACES);
+    }
+
+    @Test
+    public void shouldReturnAuditReportWithoutWorkspacePermissionsIfFailedToRetrievePermissionsOfTheWorkspaces() throws Exception {
+        //given
+        when(permissionManager.getByInstance(eq("workspace"), eq("Workspace2Id")))
+                .thenThrow(new NotFoundException("Permissions was not found"));
+
+        //when
+        final Response response = given().auth()
+                                         .basic(ADMIN_USER_NAME, ADMIN_USER_PASSWORD)
+                                         .when()
+                                         .get(SECURE_PATH + "/audit");
+
+        //then
+        assertEquals(response.print(), AUDIT_REPORT_WITHOUT_WORKSPACE_PERMISSIONS);
+    }
+
+    @Test
+    public void shouldReturnAuditReportWithoutWorkspacePermissionsIfFailedToRetrieveWorkspaceId() throws Exception {
+        //given
+        when(permissionManager.getByInstance(eq("workspace"), eq("Workspace2Id")))
+                .thenThrow(new ConflictException("Failed to retrieve workspace Id"));
+
+        //when
+        final Response response = given().auth()
+                                         .basic(ADMIN_USER_NAME, ADMIN_USER_PASSWORD)
+                                         .when()
+                                         .get(SECURE_PATH + "/audit");
+
+        //then
+        assertEquals(response.print(), AUDIT_REPORT_WITHOUT_WORKSPACE_ID);
     }
 }

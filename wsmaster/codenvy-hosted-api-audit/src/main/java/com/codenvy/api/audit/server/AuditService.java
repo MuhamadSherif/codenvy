@@ -14,9 +14,9 @@
  */
 package com.codenvy.api.audit.server;
 
-import com.codenvy.api.license.server.license.CodenvyLicense;
-import com.codenvy.api.license.server.license.CodenvyLicenseManager;
-import com.codenvy.api.license.server.license.LicenseException;
+import com.codenvy.api.license.CodenvyLicense;
+import com.codenvy.api.license.LicenseException;
+import com.codenvy.api.license.server.CodenvyLicenseManager;
 import com.codenvy.api.permission.server.PermissionManager;
 import com.codenvy.api.permission.server.PermissionsImpl;
 import com.codenvy.api.user.server.dao.AdminUserDao;
@@ -32,6 +32,7 @@ import org.eclipse.che.api.core.rest.Service;
 import org.eclipse.che.api.user.server.model.impl.UserImpl;
 import org.eclipse.che.api.workspace.server.WorkspaceManager;
 import org.eclipse.che.api.workspace.server.model.impl.WorkspaceImpl;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
@@ -40,7 +41,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.StreamingOutput;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -57,7 +57,7 @@ import java.util.Optional;
 @Path("/audit")
 public class AuditService extends Service {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(AuditService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AuditService.class);
 
     private final AdminUserDao          adminUserDao;
     private final WorkspaceManager      workspaceManager;
@@ -88,7 +88,7 @@ public class AuditService extends Service {
             appendToFile(
                     "Date when license expires: " + new SimpleDateFormat("dd MMMM yyyy").format(license.getExpirationDate()) + "\n", file);
         } catch (LicenseException e) {
-            appendToFile("Failed to retrieve license!", file);
+            appendToFile("Failed to retrieve license!\n", file);
             LOG.error(e.getMessage(), e);
         }
         int skipItems = 0;
@@ -105,7 +105,7 @@ public class AuditService extends Service {
                 try {
                     workspaces = workspaceManager.getWorkspaces(user.getId());
                 } catch (ServerException e) {
-                    appendToFile("   └ Failed to receive list of related workspaces!", file);
+                    appendToFile("   └ Failed to receive list of related workspaces!\n", file);
                     LOG.error(e.getMessage(), e);
                     continue;
                 }
@@ -132,8 +132,7 @@ public class AuditService extends Service {
             }
         }
         return output -> {
-            BufferedOutputStream bus = new BufferedOutputStream(output);
-            bus.write(IOUtils.toByteArray(new FileInputStream(file)));
+            output.write(IOUtils.toByteArray(new FileInputStream(file)));
             try {
                 FileUtils.deleteDirectory(tempDir);
             } catch (IOException e) {
